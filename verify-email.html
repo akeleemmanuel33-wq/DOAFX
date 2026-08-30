@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verify Your Email — DOAFX</title>
+
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="/favicon.ico" />
+
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/auth.css" />
+</head>
+<body>
+
+  <div class="auth-page">
+    <div class="auth-card card">
+      <div class="auth-logo">
+        <img src="images/logo.png" alt="DOAFX logo" />
+        DOAFX
+      </div>
+
+      <div class="auth-status">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin: 0 auto var(--space-sm);">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+          <polyline points="22 6 12 13 2 6"/>
+        </svg>
+        <h1>Check your inbox</h1>
+        <p class="auth-subtitle">We sent a confirmation link to your email. Click it to activate your account.</p>
+        <button class="btn btn-secondary" id="resend-btn" style="margin-top: var(--space-sm);">
+          <span class="btn-label">Resend Email</span>
+          <span class="spinner"></span>
+        </button>
+        <div class="form-error-banner" id="form-error" style="margin-top: var(--space-sm);"></div>
+      </div>
+
+      <p class="auth-footer-link">Wrong email? <a href="signup.html">Sign up again</a></p>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    const resendBtn = document.getElementById('resend-btn');
+    const formError = document.getElementById('form-error');
+
+    resendBtn.addEventListener('click', async () => {
+      const email = window.localStorage.getItem('doafx-pending-email');
+      if (!email) {
+        showFormError(formError, 'No pending email found — please sign up again.');
+        return;
+      }
+
+      setButtonLoading(resendBtn, true);
+      const { error } = await supabaseClient.auth.resend({ type: 'signup', email });
+      setButtonLoading(resendBtn, false);
+
+      if (error) {
+        showFormError(formError, error.message);
+      } else {
+        hideFormError(formError);
+        resendBtn.querySelector('.btn-label').textContent = 'Email Sent';
+      }
+    });
+  </script>
+</body>
+</html>

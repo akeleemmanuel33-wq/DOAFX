@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Detail — DOAFX Admin</title>
+
+  <link rel="icon" href="/favicon.ico" />
+
+  <link rel="stylesheet" href="../css/tokens.css" />
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/dashboard.css" />
+</head>
+<body>
+
+  <div class="shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <img src="../images/logo.png" alt="DOAFX logo" />
+        DOAFX Admin
+      </div>
+      <a href="index.html" class="sidebar-link">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+        Overview
+      </a>
+      <a href="users.html" class="sidebar-link active">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        Users
+      </a>
+      <div class="sidebar-footer">
+        <a href="../dashboard/index.html" class="sidebar-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
+          Back to Dashboard
+        </a>
+        <button class="sidebar-link" data-logout style="width: 100%; text-align: left;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Log Out
+        </button>
+      </div>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div>
+      <div class="topbar">
+        <div class="topbar-logo">
+          <img src="../images/logo.png" alt="DOAFX logo" />
+          DOAFX Admin
+        </div>
+        <button class="icon-btn" id="sidebar-toggle" aria-label="Open menu">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+      </div>
+
+      <main class="main">
+        <a href="users.html" class="field-hint" style="display:inline-block; margin-bottom: var(--space-md);">← Back to Users</a>
+
+        <div id="detail-content">
+          <div class="empty-feed">Loading user…</div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/dashboard-shell.js"></script>
+  <script src="../js/subscription-timer.js"></script>
+  <script src="../js/admin-users.js"></script>
+  <script>
+    function getUserIdFromQuery() {
+      return new URLSearchParams(window.location.search).get('id');
+    }
+
+    let detailTimerInterval = null;
+
+    async function renderDetail() {
+      const userId = getUserIdFromQuery();
+      if (!userId) {
+        document.getElementById('detail-content').innerHTML = `<div class="empty-feed">No user specified.</div>`;
+        return;
+      }
+
+      const { profile, subscription } = await fetchUserDetail(userId) || {};
+      if (!profile) {
+        document.getElementById('detail-content').innerHTML = `<div class="empty-feed">User not found.</div>`;
+        return;
+      }
+
+      const { data: plans } = await supabaseClient.from('plans').select('*').order('duration_seconds');
+
+      const content = document.getElementById('detail-content');
+      content.innerHTML = `
+        <div class="detail-header">
+          <div class="detail-avatar">${(profile.display_name || profile.username || '?')[0].toUpperCase()}</div>
+          <div>
+            <h1 style="font-size: var(--fs-xl); font-weight: 800;">${profile.display_name || 'Unnamed'} ${profile.is_suspended ? '<span class="status-pill expired">Suspended</span>' : ''}</h1>
+            <p class="field-hint">@${profile.username}</p>
+          </div>
+        </div>
+
+        <div class="dashboard-grid">
+          <div class="status-card card">
+            <div id="admin-timer-body"></div>
+          </div>
+
+          <div class="card" style="padding: var(--space-lg);">
+            <label class="field-label">Enable with Plan</label>
+            <div class="plan-radio-group" id="enable-plan-group" style="margin-bottom: var(--space-sm);">
+              ${plans.map((p) => `
+                <label class="plan-radio" data-plan="${p.id}">
+                  <input type="radio" name="enable-plan" value="${p.id}" />
+                  ${p.label} — ₦${Number(p.price_ngn).toLocaleString()}
+                </label>
+              `).join('')}
+            </div>
+            <button class="btn btn-primary" id="btn-enable" style="width:100%; margin-bottom: var(--space-sm);">Enable Account</button>
+
+            <div class="action-row">
+              <button class="btn btn-secondary" id="btn-disable">Disable (Pause Timer)</button>
+              ${profile.is_suspended
+                ? `<button class="btn-warn" id="btn-unsuspend">Unsuspend</button>`
+                : `<button class="btn-warn" id="btn-suspend">Suspend</button>`}
+              <button class="btn-danger" id="btn-delete">Delete Account</button>
+            </div>
+            <div class="form-error-banner" id="action-error" style="margin-top: var(--space-sm);"></div>
+          </div>
+        </div>
+      `;
+
+      // Timer display (reuses the same render logic as the user dashboard)
+      renderAdminTimer(subscription);
+
+      // Plan selection highlight
+      document.querySelectorAll('#enable-plan-group .plan-radio').forEach((label) => {
+        label.addEventListener('click', () => {
+          document.querySelectorAll('#enable-plan-group .plan-radio').forEach((l) => l.classList.remove('selected'));
+          label.classList.add('selected');
+        });
+      });
+
+      // Actions
+      const errorEl = document.getElementById('action-error');
+
+      document.getElementById('btn-enable').addEventListener('click', async () => {
+        const selected = document.querySelector('#enable-plan-group input:checked');
+        if (!selected) {
+          showFormError(errorEl, 'Select a plan first.');
+          return;
+        }
+        try {
+          await adminEnableUser(userId, selected.value);
+          renderDetail();
+        } catch (err) {
+          showFormError(errorEl, err.message);
+        }
+      });
+
+      document.getElementById('btn-disable').addEventListener('click', async () => {
+        try {
+          await adminDisableUser(userId);
+          renderDetail();
+        } catch (err) {
+          showFormError(errorEl, err.message);
+        }
+      });
+
+      const suspendBtn = document.getElementById('btn-suspend');
+      if (suspendBtn) {
+        suspendBtn.addEventListener('click', async () => {
+          try {
+            await adminSuspendUser(userId);
+            renderDetail();
+          } catch (err) {
+            showFormError(errorEl, err.message);
+          }
+        });
+      }
+
+      const unsuspendBtn = document.getElementById('btn-unsuspend');
+      if (unsuspendBtn) {
+        unsuspendBtn.addEventListener('click', async () => {
+          try {
+            await adminUnsuspendUser(userId);
+            renderDetail();
+          } catch (err) {
+            showFormError(errorEl, err.message);
+          }
+        });
+      }
+
+      document.getElementById('btn-delete').addEventListener('click', async () => {
+        if (!confirm(`Permanently delete ${profile.display_name || profile.username}'s account? This cannot be undone.`)) return;
+        try {
+          await adminDeleteUser(userId);
+          window.location.href = 'users.html';
+        } catch (err) {
+          showFormError(errorEl, err.message);
+        }
+      });
+    }
+
+    function renderAdminTimer(sub) {
+      const container = document.getElementById('admin-timer-body');
+      if (detailTimerInterval) clearInterval(detailTimerInterval);
+
+      if (!sub || sub.status === 'inactive') {
+        container.innerHTML = `<div class="no-plan-state"><h3>No running plan</h3><p>Account doesn't have a running plan.</p></div>`;
+        return;
+      }
+
+      const statusLabel = { active: 'Active', paused: 'Paused', expired: 'Expired' }[sub.status] || sub.status;
+      container.innerHTML = `
+        <div class="status-header">
+          <span class="status-pill ${sub.status}">${statusLabel}</span>
+          <span class="field-hint">${sub.plans?.label || ''} plan</span>
+        </div>
+        <div class="timer-display" id="admin-timer-value">--:--:--</div>
+        <div class="timer-label">Time remaining</div>
+      `;
+
+      if (sub.status === 'expired') return;
+
+      const timerEl = document.getElementById('admin-timer-value');
+      let remaining = computeLiveRemaining(sub);
+      timerEl.textContent = formatDuration(remaining);
+
+      if (sub.status === 'active') {
+        detailTimerInterval = setInterval(() => {
+          remaining = Math.max(0, remaining - 1);
+          timerEl.textContent = formatDuration(remaining);
+          if (remaining <= 0) clearInterval(detailTimerInterval);
+        }, 1000);
+      }
+    }
+
+    (async () => {
+      const auth = await requireAdmin();
+      if (!auth) return;
+      await renderDetail();
+    })();
+  </script>
+</body>
+</html>
