@@ -6,7 +6,13 @@
   <title>Dashboard — DOAFX</title>
 
   <link rel="manifest" href="/manifest.json" />
-  <link rel="icon" href="/favicon.ico" />
+  <meta name="theme-color" content="#0a0a0f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/public/icons/icon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/public/icons/icon-16.png" />
+  <link rel="apple-touch-icon" href="/public/icons/apple-touch-icon.png" />
 
   <link rel="stylesheet" href="../css/tokens.css" />
   <link rel="stylesheet" href="../css/base.css" />
@@ -77,6 +83,20 @@
           </div>
         </div>
 
+        <div class="card notif-banner" id="notif-banner" style="display:none;">
+          <div class="notif-banner-text">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+            <div>
+              <h4>Get notified instantly</h4>
+              <p>Enable push notifications to catch every signal the moment it drops.</p>
+            </div>
+          </div>
+          <div class="notif-banner-actions">
+            <button class="btn btn-secondary" id="notif-dismiss">Not Now</button>
+            <button class="btn btn-primary" id="notif-enable">Enable</button>
+          </div>
+        </div>
+
         <div class="dashboard-grid">
           <div class="status-card card" id="status-card-body">
             <div class="skeleton skeleton-line" style="width: 30%;"></div>
@@ -116,9 +136,41 @@
   <script src="../js/supabase-client.js"></script>
   <script src="../js/theme-toggle.js"></script>
   <script src="../js/dashboard-shell.js"></script>
+  <script src="../js/auth.js"></script>
   <script src="../js/subscription-timer.js"></script>
   <script src="../js/signals-realtime.js"></script>
+  <script src="../js/notifications.js"></script>
+  <script src="../js/sw-register.js"></script>
   <script>
+    async function initNotifBanner() {
+      const banner = document.getElementById('notif-banner');
+      const dismissedKey = 'doafx-notif-dismissed';
+
+      const status = await getNotificationStatus();
+      const alreadyDismissed = sessionStorage.getItem(dismissedKey);
+
+      if (status === 'default' && !alreadyDismissed) {
+        banner.style.display = 'flex';
+      }
+
+      document.getElementById('notif-dismiss').addEventListener('click', () => {
+        sessionStorage.setItem(dismissedKey, '1');
+        banner.style.display = 'none';
+      });
+
+      document.getElementById('notif-enable').addEventListener('click', async (e) => {
+        const btn = e.target;
+        setButtonLoading(btn, true);
+        try {
+          await enablePushNotifications();
+          banner.style.display = 'none';
+        } catch (err) {
+          alert(err.message || 'Could not enable notifications.');
+        }
+        setButtonLoading(btn, false);
+      });
+    }
+
     (async () => {
       const auth = await requireAuth();
       if (!auth) return;
@@ -129,6 +181,7 @@
       if (isLiveActive) {
         await loadRecentSignals();
         subscribeToSignals();
+        await initNotifBanner();
       } else {
         renderNoSubscriptionFeed();
       }
