@@ -6,10 +6,7 @@
   <title>Sign Up — DOAFX</title>
 
   <link rel="manifest" href="/manifest.json" />
-  <link rel="icon" href="/favicon.ico" sizes="any" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/public/icons/icon-32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="/public/icons/icon-16.png" />
-  <link rel="apple-touch-icon" href="/public/icons/apple-touch-icon.png" />
+  <link rel="icon" href="/favicon.ico" />
 
   <link rel="stylesheet" href="css/tokens.css" />
   <link rel="stylesheet" href="css/base.css" />
@@ -80,7 +77,6 @@
   </div>
 
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <script src="js/sw-register.js"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/auth.js"></script>
   <script>
@@ -132,14 +128,6 @@
 
       if (error) {
         showFormError(formError, error.message);
-        return;
-      }
-
-      if (data.session) {
-        // Email confirmation is OFF — Supabase already returned an active
-        // session, so the account is immediately usable. No need to send
-        // them to a "check your inbox" screen for an email that was never sent.
-        window.location.href = 'dashboard/index.html';
         return;
       }
 

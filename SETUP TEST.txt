@@ -1,0 +1,26 @@
+═══════════════════════════════════════════════════
+CONFIRM SIGNUP TEMPLATE
+Paste into: Supabase → Authentication → Email Templates → Confirm signup
+═══════════════════════════════════════════════════
+
+<div style="font-family: -apple-system, sans-serif; background:#0a0a0f; color:#f5f5f7; padding:40px 32px; max-width:480px; margin:0 auto; border-radius:16px;">
+  <div style="font-weight:800; font-size:20px; margin-bottom:24px;">DOAFX</div>
+  <h2 style="color:#f5f5f7; font-size:22px; margin-bottom:12px;">Confirm your account</h2>
+  <p style="color:#a1a1aa; font-size:14px; line-height:1.6;">Welcome to DOAFX. Confirm your email to activate your account and start receiving live trade signals.</p>
+  <a href="{{ .ConfirmationURL }}" style="display:inline-block; background:#6366f1; color:#fff; padding:12px 28px; border-radius:999px; text-decoration:none; margin-top:20px; font-weight:600; font-size:14px;">Confirm Email</a>
+  <p style="margin-top:28px; color:#6b6b76; font-size:12px;">If you didn't create a DOAFX account, you can safely ignore this email.</p>
+</div>
+
+
+═══════════════════════════════════════════════════
+RESET PASSWORD TEMPLATE
+Paste into: Supabase → Authentication → Email Templates → Reset Password
+═══════════════════════════════════════════════════
+
+<div style="font-family: -apple-system, sans-serif; background:#0a0a0f; color:#f5f5f7; padding:40px 32px; max-width:480px; margin:0 auto; border-radius:16px;">
+  <div style="font-weight:800; font-size:20px; margin-bottom:24px;">DOAFX</div>
+  <h2 style="color:#f5f5f7; font-size:22px; margin-bottom:12px;">Reset your password</h2>
+  <p style="color:#a1a1aa; font-size:14px; line-height:1.6;">We received a request to reset your DOAFX account password.</p>
+  <a href="{{ .ConfirmationURL }}" style="display:inline-block; background:#6366f1; color:#fff; padding:12px 28px; border-radius:999px; text-decoration:none; margin-top:20px; font-weight:600; font-size:14px;">Reset Password</a>
+  <p style="margin-top:28px; color:#6b6b76; font-size:12px;">If you didn't request this, you can safely ignore this email.</p>
+</div>
