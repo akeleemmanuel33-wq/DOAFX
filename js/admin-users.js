@@ -1,5 +1,3 @@
-// js/admin-users.js
-
 async function requireAdmin() {
   const auth = await requireAuth();
   if (!auth) return null;
@@ -29,8 +27,7 @@ async function searchUsers(query) {
   }
   if (!profiles || profiles.length === 0) return [];
 
-  // Fetch subscriptions separately (profiles<->subscriptions has two FKs —
-  // user_id and activated_by — so nested embedding is ambiguous and fails silently)
+  
   const userIds = profiles.map((p) => p.id);
   const { data: subs, error: subsError } = await supabaseClient
     .from('subscriptions')
